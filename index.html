@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>listing-gen</title>
+  <script src="https://cdn.jsdelivr.net/npm/@undecaf/zbar-wasm@0.9.15/dist/index.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@undecaf/barcode-detector-polyfill@0.9.23/dist/index.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/reefjs@13/dist/reef.min.js"></script>
+  <link rel="stylesheet" href="./style.css" />
+</head>
+
+<body>
+  <div id="scan-view">
+    <p>Scan a product to add it to the list.</p>
+    <video autoplay playsinline style="width: 100%; max-width: 400px;"></video>
+  </div>
+  <div id="product-view"></div>
+  <script type="module" src="/src/main.js"></script>
+</body>
+
+
+
+</html>
