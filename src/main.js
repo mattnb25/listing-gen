@@ -1,8 +1,6 @@
 import { getProductByUpc, downloadCsv } from "./csv-parser.js";
 const { signal, component } = reef;
 
-console.log(await getProductByUpc(857047002197));
-
 const productListing = new Map();
 const detectedProduct = signal(null);
 const isScanning = signal(true, 'isScanning');
@@ -34,7 +32,7 @@ async function scan() {
   const barcodes = await barcodeDetector.detect(videoElement);
   if (barcodes.length > 0) {
     for (const barcode of barcodes) {
-      const product = getProductByUpc(barcode.rawValue);
+      const product = await getProductByUpc(barcode.rawValue);
       if (product) {
         detectedProduct.value = product;
         productListing.set(barcode.rawValue, product);
