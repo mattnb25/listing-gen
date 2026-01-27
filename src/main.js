@@ -3,7 +3,7 @@ const { signal, component } = reef;
 
 const productListing = new Map();
 const detectedProduct = signal(null);
-const isScanning = signal(true);
+const isScanning = signal(true, 'isScanning');
 
 if (!("BarcodeDetector" in window)) {
   window["BarcodeDetector"] = barcodeDetectorPolyfill.BarcodeDetectorPolyfill;
@@ -46,10 +46,25 @@ async function scan() {
 // Initialize
 setupCamera().then(() => scan());
 
-component("#product-view", `
-    <h1>${detectedProduct.value?.name}</h1>
+component("#product-view", () => {
+  return `
+    <h2>${'added: ' + detectedProduct.value?.name}</h2>
     <button id="scan-btn">Scan Again</button>
-  `
-);
+    <button id="download-btn">Download CSV (${productListing.size} items added)</button>
+  `;
+});
 
-document.querySelector("#scan-btn").addEventListener('click', () => scan());
+document.querySelector("#product-view").addEventListener('click', (event) => {
+  if (event.target?.id === 'scan-btn') {
+    isScanning.value = true;
+    scan();
+  }
+  if (event.target?.id === 'download-btn') {
+    downloadCsv(productListing);
+  }
+});
+
+document.addEventListener('reef:signal-isScanning', function (event) {
+	document.querySelector("#scan-view").classList.toggle('hidden', !isScanning.value);
+	document.querySelector("#product-view").classList.toggle('hidden', isScanning.value);
+});

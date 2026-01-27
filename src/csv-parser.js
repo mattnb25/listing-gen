@@ -1,7 +1,7 @@
-import csv from "./data.csv?raw";
-
-const productMap = (() => {
-  const lines = csv.trim().split('\n');
+const productMap = (async () => {
+  const response = await fetch('/data.csv');
+  const csvText = await response.text();
+  const lines = csvText.trim().split('\n');
   const header = lines.shift().split(',').map(s => s.trim());
   const barcodeIndex = header.indexOf('part_no');
   const descIndex = header.indexOf('desc');
