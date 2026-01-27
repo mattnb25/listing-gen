@@ -1,6 +1,8 @@
 import { getProductByUpc, downloadCsv } from "./csv-parser.js";
 const { signal, component } = reef;
 
+console.log(await getProductByUpc(857047002197));
+
 const productListing = new Map();
 const detectedProduct = signal(null);
 const isScanning = signal(true, 'isScanning');
@@ -65,6 +67,6 @@ document.querySelector("#product-view").addEventListener('click', (event) => {
 });
 
 document.addEventListener('reef:signal-isScanning', function (event) {
-	document.querySelector("#scan-view").classList.toggle('hidden', !isScanning.value);
-	document.querySelector("#product-view").classList.toggle('hidden', isScanning.value);
+  document.querySelector("#scan-view").classList.toggle('hidden', !isScanning.value);
+  document.querySelector("#product-view").classList.toggle('hidden', isScanning.value);
 });

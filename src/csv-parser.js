@@ -24,8 +24,9 @@ const productMap = (async () => {
   return map;
 })();
 
-export function getProductByUpc(upc) {
-  return productMap.get(upc);
+export async function getProductByUpc(upc) {
+  const map = await productMap;
+  return map.get(String(upc));
 }
 
 export function downloadCsv(map) {
