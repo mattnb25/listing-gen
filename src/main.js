@@ -3,7 +3,6 @@ const { signal, component } = reef;
 
 const productListing = new Map();
 const detectedProduct = signal(null);
-const isScanning = signal(true, 'isScanning');
 
 if (!("BarcodeDetector" in window)) {
   window["BarcodeDetector"] = barcodeDetectorPolyfill.BarcodeDetectorPolyfill;
@@ -18,17 +17,24 @@ const videoElement = document.querySelector("video");
 async function setupCamera() {
   const stream = await navigator.mediaDevices.getUserMedia({
     video: { facingMode: "environment" },
+    width: { ideal: 1280 }, // Higher res helps with small barcodes
+    height: { ideal: 720 }
   });
 
   videoElement.srcObject = stream;
 
   await new Promise((resolve) => {
-    videoElement.onloadedmetadata = resolve;
+    videoElement.onloadedmetadata = () => {
+      videoElement.play().then(resolve);
+    };
   });
 }
 
 async function scan() {
-  if (!isScanning.value) return;
+  if (videoElement.readyState !== videoElement.HAVE_ENOUGH_DATA) {
+    requestAnimationFrame(scan);
+    return;
+  }
   const barcodes = await barcodeDetector.detect(videoElement);
   if (barcodes.length > 0) {
     for (const barcode of barcodes) {
@@ -36,11 +42,10 @@ async function scan() {
       if (product) {
         detectedProduct.value = product;
         productListing.set(barcode.rawValue, product);
-        isScanning.value = false;
       }
     }
   }
-  requestAnimationFrame(scan);
+  setTimeout(() => requestAnimationFrame(scan), 100);
 }
 
 // Initialize
@@ -48,23 +53,14 @@ setupCamera().then(() => scan());
 
 component("#product-view", () => {
   return `
-    <h2>${'added: ' + detectedProduct.value?.name}</h2>
-    <button id="scan-btn">Scan Again</button>
+    <h2>${'last added: ' + (detectedProduct.value?.name || "none")}</h2>
     <button id="download-btn">Download CSV (${productListing.size} items added)</button>
   `;
 });
 
 document.querySelector("#product-view").addEventListener('click', (event) => {
-  if (event.target?.id === 'scan-btn') {
-    isScanning.value = true;
-    scan();
-  }
+
   if (event.target?.id === 'download-btn') {
     downloadCsv(productListing);
   }
-});
-
-document.addEventListener('reef:signal-isScanning', function (event) {
-  document.querySelector("#scan-view").classList.toggle('hidden', !isScanning.value);
-  document.querySelector("#product-view").classList.toggle('hidden', isScanning.value);
 });
