@@ -1,8 +1,7 @@
-import { getProductByUpc, downloadCsv } from "./csv-parser.js";
 const { signal, component } = reef;
+import { getProductByUpc, downloadCsv } from "./utils.js";
 
-const productListing = new Map();
-const detectedProduct = signal(null);
+const isScanning = signal(null);
 
 if (!("BarcodeDetector" in window)) {
   window["BarcodeDetector"] = barcodeDetectorPolyfill.BarcodeDetectorPolyfill;
@@ -16,9 +15,7 @@ const videoElement = document.querySelector("video");
 
 async function setupCamera() {
   const stream = await navigator.mediaDevices.getUserMedia({
-    video: { facingMode: "environment" },
-    width: { ideal: 1280 }, // Higher res helps with small barcodes
-    height: { ideal: 720 }
+    video: { facingMode: "environment" }, audio: false,
   });
 
   videoElement.srcObject = stream;
@@ -45,7 +42,6 @@ async function scan() {
       }
     }
   }
-  setTimeout(() => requestAnimationFrame(scan), 100);
 }
 
 // Initialize

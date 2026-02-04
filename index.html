@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>listing-gen</title>
+  <title>Product Lookup</title>
   <script src="https://cdn.jsdelivr.net/npm/@undecaf/zbar-wasm@0.9.15/dist/index.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@undecaf/barcode-detector-polyfill@0.9.23/dist/index.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/reefjs@13/dist/reef.min.js"></script>
@@ -13,8 +13,8 @@
 
 <body>
   <div id="scan-view">
-    <p>Scan a product to add it to the list.</p>
-    <video autoplay playsinline></video>
+    <p>Scan a product to view its details.</p>
+    <video autoplay muted playsinline></video>
   </div>
   <div id="product-view"></div>
   <script type="module" src="/src/main.js"></script>
