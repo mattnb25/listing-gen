@@ -1,0 +1,20 @@
+video {
+  width: 100%;
+  max-width: 400px;
+  max-height: 200px;
+  background-color: black;
+}
+
+dt {
+  font-weight: bold;
+}
+
+dd {
+  font-size: 1.4rem;
+  margin: 0;
+  margin-bottom: 1em;
+}
+
+button {
+  font-size: 1.4rem;
+}

@@ -15,9 +15,8 @@ const getData = () => {
 const allProducts = await getData();
 
 export async function getProductByUpc(upc) {
-  // only finds the first product where the UPC matches.
   const product = allProducts.find(item =>
-    String(item.upc).trim() === String(upc).trim()
+    String(item.part_no).trim() === String(upc).trim()
   );
 
   return product || null;
