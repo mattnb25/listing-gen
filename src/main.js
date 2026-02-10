@@ -1,7 +1,12 @@
 const { signal, component } = reef;
-import { getProductByUpc, downloadCsv } from "./utils.js";
+import { getProductByUpc } from "./utils.js";
 
-const isScanning = signal(null);
+const state = signal({
+  barcode: null,
+  product: null
+});
+
+let videoStream = null;
 
 if (!("BarcodeDetector" in window)) {
   window["BarcodeDetector"] = barcodeDetectorPolyfill.BarcodeDetectorPolyfill;
@@ -11,52 +16,101 @@ const barcodeDetector = new BarcodeDetector({
   formats: ["upc_a", "upc_e", "code_128", "ean_13", "ean_8"],
 });
 
-const videoElement = document.querySelector("video");
+async function stopCamera() {
+  if (videoStream) {
+    videoStream.getTracks().forEach(track => track.stop());
+    videoStream = null;
+  }
+  document.querySelector("video").srcObject = null;
+}
 
-async function setupCamera() {
-  const stream = await navigator.mediaDevices.getUserMedia({
-    video: { facingMode: "environment" }, audio: false,
-  });
+async function startScanning() {
+  state.barcode = null;
+  state.product = null;
 
-  videoElement.srcObject = stream;
+  // Wait for DOM update
+  await new Promise(requestAnimationFrame);
 
-  await new Promise((resolve) => {
-    videoElement.onloadedmetadata = () => {
-      videoElement.play().then(resolve);
-    };
-  });
+  const video = document.querySelector("video");
+  if (!video) return;
+
+  try {
+    videoStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: "environment" },
+      audio: false
+    });
+    video.srcObject = videoStream;
+
+    await new Promise((resolve) => {
+      video.onloadedmetadata = () => {
+        video.play().then(resolve);
+      };
+    });
+
+    scan();
+  } catch (err) {
+    console.error("Error starting camera:", err);
+  }
 }
 
 async function scan() {
-  if (videoElement.readyState !== videoElement.HAVE_ENOUGH_DATA) {
+  if (state.product) return;
+
+  const video = document.querySelector("video");
+  if (!video || video.readyState !== video.HAVE_ENOUGH_DATA) {
     requestAnimationFrame(scan);
     return;
   }
-  const barcodes = await barcodeDetector.detect(videoElement);
-  if (barcodes.length > 0) {
-    for (const barcode of barcodes) {
-      const product = await getProductByUpc(barcode.rawValue);
-      if (product) {
-        detectedProduct.value = product;
-        productListing.set(barcode.rawValue, product);
-      }
+
+  try {
+    const barcodes = await barcodeDetector.detect(video);
+    if (barcodes.length > 0) {
+      const firstBarcode = barcodes[0].rawValue;
+      await stopCamera();
+
+      const product = await getProductByUpc(firstBarcode);
+
+      state.barcode = firstBarcode;
+      state.product = product;
+      return;
     }
+  } catch (e) {
+    console.error("Detection error:", e);
   }
+
+  requestAnimationFrame(scan);
 }
 
-// Initialize
-setupCamera().then(() => scan());
-
-component("#product-view", () => {
-  return `
-    <h2>${'last added: ' + (detectedProduct.value?.name || "none")}</h2>
-    <button id="download-btn">Download CSV (${productListing.size} items added)</button>
-  `;
-});
-
-document.querySelector("#product-view").addEventListener('click', (event) => {
-
-  if (event.target?.id === 'download-btn') {
-    downloadCsv(productListing);
+component("#app", () => {
+  if (state.barcode) { // A barcode has been scanned.
+    return `
+<article>
+  <h2>${state.barcode}</h2>
+  <dl>
+    <dt>Name</dt>
+    <dd>${state.product?.desc || 'Not Found'}</dd>
+    <dt>Price</dt>
+    <dd>${state.product?.price1?.toFixed(2) || 'Not Found'}</dd>
+  </dl>
+</article>
+<button id="scan-again-btn">Scan Again</button>
+`;
+  }
+  else { // Not scanning yet.
+    return `
+<p>Point your camera at a barcode for product information (updated 31
+  January 2025, from Home Tan).
+</p>
+<video autoplay muted playsinline></video>
+`;
   }
 });
+
+document.querySelector("#app").addEventListener('click', (event) => {
+  if (event.target?.id === 'scan-again-btn') {
+    startScanning();
+  }
+});
+
+// Initialize
+startScanning();
