@@ -13,6 +13,8 @@
     "vite": "^7.2.4"
   },
   "dependencies": {
-    "papaparse": "^5.5.3"
+    "@undecaf/barcode-detector-polyfill": "^0.9.23",
+    "papaparse": "^5.5.3",
+    "reefjs": "^13.0.6"
   }
 }

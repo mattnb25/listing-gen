@@ -1,20 +1,30 @@
-video {
-  width: 100%;
-  max-width: 400px;
-  max-height: 200px;
-  background-color: black;
-}
+    * {
+      font-family: sans-serif;
+    }
 
-dt {
-  font-weight: bold;
-}
+    body {
+      max-width: 70ch;
+      margin: auto;
+      padding: 0 1rem;
+    }
 
-dd {
-  font-size: 1.4rem;
-  margin: 0;
-  margin-bottom: 1em;
-}
+    video {
+      width: 100%;
+      max-height: 250px;
+      background-color: black;
+      object-fit: cover;
+    }
 
-button {
-  font-size: 1.4rem;
-}
+    dt {
+      font-weight: bold;
+    }
+
+    dd {
+      font-size: 1.4rem;
+      margin: 0;
+      margin-bottom: 1em;
+    }
+
+    button {
+      font-size: 1.4rem;
+    }

@@ -1,5 +1,6 @@
-const { signal, component } = reef;
+import { signal, component } from 'reefjs';
 import { getProductByUpc } from "./utils.js";
+import { BarcodeDetectorPolyfill } from '@undecaf/barcode-detector-polyfill'
 
 const state = signal({
   barcode: null,
@@ -9,10 +10,10 @@ const state = signal({
 let videoStream = null;
 
 if (!("BarcodeDetector" in window)) {
-  window["BarcodeDetector"] = barcodeDetectorPolyfill.BarcodeDetectorPolyfill;
+  window.BarcodeDetector = BarcodeDetectorPolyfill;
 }
 
-const barcodeDetector = new BarcodeDetector({
+const barcodeDetector = new window.BarcodeDetector({
   formats: ["upc_a", "upc_e", "code_128", "ean_13", "ean_8"],
 });
 
@@ -36,7 +37,10 @@ async function startScanning() {
 
   try {
     videoStream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: "environment" },
+      video: {
+        facingMode: "environment", width: { ideal: 1920 },
+        height: { ideal: 1080 }
+      },
       audio: false
     });
     video.srcObject = videoStream;
@@ -82,35 +86,31 @@ async function scan() {
 }
 
 component("#app", () => {
-  if (state.barcode) { // A barcode has been scanned.
-    return `
-<article>
-  <h2>${state.barcode}</h2>
-  <dl>
-    <dt>Name</dt>
-    <dd>${state.product?.desc || 'Not Found'}</dd>
-    <dt>Price</dt>
-    <dd>${state.product?.price1?.toFixed(2) || 'Not Found'}</dd>
-  </dl>
-</article>
-<button id="scan-again-btn">Scan Again</button>
-`;
+  if (state.barcode && !state.product) {
+    return `<p>Fetching product details for ${state.barcode}...</p>`;
   }
-  else { // Not scanning yet.
-    return `
-<p>Point your camera at a barcode for product information (updated 31
-  January 2025, from Home Tan).
-</p>
-<video autoplay muted playsinline></video>
-`;
-  }
-});
 
-document.querySelector("#app").addEventListener('click', (event) => {
-  if (event.target?.id === 'scan-again-btn') {
-    startScanning();
+  if (state.product) {
+    return `
+      <article>
+        <h2>${state.barcode}</h2>
+        <dl>
+          <dt>Name</dt>
+          <dd>${state.product?.desc || 'Not Found'}</dd>
+          <dt>Price</dt>
+          <dd>${state.product?.price1?.toFixed(2) || 'Not Found'}</dd>
+        </dl>
+      </article>
+      <button id="scan-again-btn">Scan Again</button>
+    `;
   }
-});
 
+  return `
+    <p>Point your camera at a barcode.</p>
+    <div class="video-container">
+      <video autoplay muted playsinline></video>
+    </div>
+  `;
+});
 // Initialize
 startScanning();
