@@ -76,6 +76,7 @@ async function scan() {
 
       state.barcode = firstBarcode;
       state.product = product;
+      
       return;
     }
   } catch (e) {
@@ -92,25 +93,25 @@ component("#app", () => {
 
   if (state.product) {
     return `
-      <article>
-        <h2>${state.barcode}</h2>
-        <dl>
-          <dt>Name</dt>
-          <dd>${state.product?.desc || 'Not Found'}</dd>
-          <dt>Price</dt>
-          <dd>${state.product?.price1?.toFixed(2) || 'Not Found'}</dd>
-        </dl>
-      </article>
-      <button id="scan-again-btn">Scan Again</button>
-    `;
+                                                                                                                                                                                                                          <article>
+                                                                                                                                                                                                                                  <h2>${state.barcode}</h2>
+                                                                                                                                                                                                                                          <dl>
+                                                                                                                                                                                                                                                    <dt>Name</dt>
+                                                                                                                                                                                                                                                              <dd>${state.product?.desc || 'Not Found'}</dd>
+                                                                                                                                                                                                                                                                        <dt>Price</dt>
+                                                                                                                                                                                                                                                                                  <dd>${state.product?.price1?.toFixed(2) || 'Not Found'}</dd>
+                                                                                                                                                                                                                                                                                          </dl>
+                                                                                                                                                                                                                                                                                                </article>
+                                                                                                                                                                                                                                                                                                      <button id="scan-again-btn">Scan Again</button>
+                                                                                                                                                                                                                                                                                                          `;
   }
 
   return `
-    <p>Point your camera at a barcode.</p>
-    <div class="video-container">
-      <video autoplay muted playsinline></video>
-    </div>
-  `;
+                                                                                                                                                                                                                                                                                                                  <p>Point your camera at a barcode.</p>
+                                                                                                                                                                                                                                                                                                                      <div class="video-container">
+                                                                                                                                                                                                                                                                                                                            <video autoplay muted playsinline></video>
+                                                                                                                                                                                                                                                                                                                                </div>
+                                                                                                                                                                                                                                                                                                                                  `;
 });
 // Initialize
 startScanning();

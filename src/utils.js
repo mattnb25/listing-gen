@@ -18,6 +18,7 @@ export async function getProductByUpc(upc) {
   const product = allProducts.find(item =>
     String(item.part_no).trim() === String(upc).trim()
   );
+  console.log(product);
 
   return product || null;
 }
