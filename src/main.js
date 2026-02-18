@@ -71,12 +71,12 @@ async function scan() {
     if (barcodes.length > 0) {
       const firstBarcode = barcodes[0].rawValue;
       await stopCamera();
-
       const product = await getProductByUpc(firstBarcode);
 
       state.barcode = firstBarcode;
       state.product = product;
-      
+
+
       return;
     }
   } catch (e) {
@@ -88,6 +88,19 @@ async function scan() {
 
 component("#app", () => {
   if (state.barcode && !state.product) {
+    // Check if the product lookup has already occurred (i.e., we are past the "fetching" stage)
+    // This assumes that if state.product is null here, it's because getProductByUpc returned null.
+    // If we are continuously scanning, then product would not be null, but we'd still be in the "Point your camera" state.
+    // So, if state.barcode is set, and product is null, it means lookup failed.
+    if (state.product === null) {
+      return `
+        <article>
+          <h2>Barcode: ${state.barcode}</h2>
+          <p>Product not found.</p>
+        </article>
+        <button id="scan-again-btn">Scan Again</button>
+      `;
+    }
     return `<p>Fetching product details for ${state.barcode}...</p>`;
   }
 
@@ -115,3 +128,9 @@ component("#app", () => {
 });
 // Initialize
 startScanning();
+
+document.addEventListener('click', (event) => {
+  if (event.target.matches('#scan-again-btn')) {
+    startScanning();
+  }
+});
