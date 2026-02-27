@@ -1,136 +1,124 @@
 import { signal, component } from 'reefjs';
 import { getProductByUpc } from "./utils.js";
-import { BarcodeDetectorPolyfill } from '@undecaf/barcode-detector-polyfill'
+import { BarcodeDetectorPolyfill } from '@undecaf/barcode-detector-polyfill';
 
-const state = signal({
-  barcode: null,
-  product: null
-});
+const _getContext = HTMLCanvasElement.prototype.getContext;
+HTMLCanvasElement.prototype.getContext = function (type, attr) {
+  return _getContext.call(this, type, type === '2d' ? {
+    ...attr,
+    willReadFrequently: true
+  } : attr);
+};
 
-let videoStream = null;
-
-if (!("BarcodeDetector" in window)) {
-  window.BarcodeDetector = BarcodeDetectorPolyfill;
-}
-
+window.BarcodeDetector ||= BarcodeDetectorPolyfill;
 const barcodeDetector = new window.BarcodeDetector({
   formats: ["upc_a", "upc_e", "code_128", "ean_13", "ean_8"],
 });
 
-async function stopCamera() {
-  if (videoStream) {
-    videoStream.getTracks().forEach(track => track.stop());
-    videoStream = null;
-  }
-  document.querySelector("video").srcObject = null;
-}
+let videoElement = document.querySelector("video");
 
-async function startScanning() {
+(async () => {
+  const videoStream = await navigator.mediaDevices.getUserMedia({
+    video: { facingMode: "environment" }
+  });
+
+  videoElement.srcObject = videoStream;
+  videoElement.onloadedmetadata = () => {
+    videoElement.play();
+    scan();
+  };
+})();
+
+
+const state = signal({
+  status: 'idle',
+  barcode: null,
+  product: null
+}, 'app-state');
+
+document.addEventListener('reef:signal-app-state', () => {
+  const isIdle = state.status === 'idle';
+  videoElement.hidden = !isIdle;
+
+  if (isIdle) {
+    videoElement.play();
+    scan();
+  } else {
+    videoElement.pause();
+  }
+});
+
+function reset() {
+  state.status = 'idle';
   state.barcode = null;
   state.product = null;
-
-  // Wait for DOM update
-  await new Promise(requestAnimationFrame);
-
-  const video = document.querySelector("video");
-  if (!video) return;
-
-  try {
-    videoStream = await navigator.mediaDevices.getUserMedia({
-      video: {
-        facingMode: "environment", width: { ideal: 1920 },
-        height: { ideal: 1080 }
-      },
-      audio: false
-    });
-    video.srcObject = videoStream;
-
-    await new Promise((resolve) => {
-      video.onloadedmetadata = () => {
-        video.play().then(resolve);
-      };
-    });
-
-    scan();
-  } catch (err) {
-    console.error("Error starting camera:", err);
-  }
 }
 
 async function scan() {
-  if (state.product) return;
+  if (state.status !== 'idle') return;
 
-  const video = document.querySelector("video");
-  if (!video || video.readyState !== video.HAVE_ENOUGH_DATA) {
+  if (videoElement.readyState < 2) {
     requestAnimationFrame(scan);
     return;
   }
+  const barcodes = await barcodeDetector.detect(videoElement);
+  if (barcodes.length > 0) {
+    state.status = 'fetching';
 
-  try {
-    const barcodes = await barcodeDetector.detect(video);
-    if (barcodes.length > 0) {
-      const firstBarcode = barcodes[0].rawValue;
-      await stopCamera();
-      const product = await getProductByUpc(firstBarcode);
-
-      state.barcode = firstBarcode;
-      state.product = product;
-
-
-      return;
+    let barcode = barcodes[0].rawValue;
+    if (barcodes[0].format === 'upc_e') {
+      barcode = barcode.slice(1, 7)
     }
-  } catch (e) {
-    console.error("Detection error:", e);
-  }
+    state.barcode = barcode;
 
+    state.product = await getProductByUpc(state.barcode);
+    state.status = !state.product ? 'not-found' : 'found';
+    console.log(state);
+    return
+  }
   requestAnimationFrame(scan);
 }
 
-component("#app", () => {
-  if (state.barcode && !state.product) {
-    // Check if the product lookup has already occurred (i.e., we are past the "fetching" stage)
-    // This assumes that if state.product is null here, it's because getProductByUpc returned null.
-    // If we are continuously scanning, then product would not be null, but we'd still be in the "Point your camera" state.
-    // So, if state.barcode is set, and product is null, it means lookup failed.
-    if (state.product === null) {
+
+component("#product-info", () => {
+  const {
+    status,
+    barcode,
+    product
+  } = state;
+
+  switch (status) {
+    case 'idle':
+      return `<p>Please enable camera access and point your camera at a barcode.</p>`;
+
+    case 'fetching':
+      return `<p>Searching for ${barcode}...</p>`;
+
+    case 'not-found':
       return `
-        <article>
-          <h2>Barcode: ${state.barcode}</h2>
-          <p>Product not found.</p>
-        </article>
-        <button id="scan-again-btn">Scan Again</button>
-      `;
-    }
-    return `<p>Fetching product details for ${state.barcode}...</p>`;
-  }
+  <p>Could not find ${barcode}...</p>
+  <button id="scan-btn">Scan Another Item</button>
+  `;
 
-  if (state.product) {
-    return `
-                                                                                                                                                                                                                          <article>
-                                                                                                                                                                                                                                  <h2>${state.barcode}</h2>
-                                                                                                                                                                                                                                          <dl>
-                                                                                                                                                                                                                                                    <dt>Name</dt>
-                                                                                                                                                                                                                                                              <dd>${state.product?.desc || 'Not Found'}</dd>
-                                                                                                                                                                                                                                                                        <dt>Price</dt>
-                                                                                                                                                                                                                                                                                  <dd>${state.product?.price1?.toFixed(2) || 'Not Found'}</dd>
-                                                                                                                                                                                                                                                                                          </dl>
-                                                                                                                                                                                                                                                                                                </article>
-                                                                                                                                                                                                                                                                                                      <button id="scan-again-btn">Scan Again</button>
-                                                                                                                                                                                                                                                                                                          `;
+    case 'found':
+      return `
+  <article>
+    <h2>${barcode}</h2>
+    <dl>
+      <dt>Item</dt>
+      <dd>${product.desc}</dd>
+      <dt>Price</dt>
+      <dd>$${product.price1.toFixed(2)}</dd>
+    </dl>
+  </article>
+  <button id="scan-btn">Scan Another Item</button>`;
   }
-
-  return `
-                                                                                                                                                                                                                                                                                                                  <p>Point your camera at a barcode.</p>
-                                                                                                                                                                                                                                                                                                                      <div class="video-container">
-                                                                                                                                                                                                                                                                                                                            <video autoplay muted playsinline></video>
-                                                                                                                                                                                                                                                                                                                                </div>
-                                                                                                                                                                                                                                                                                                                                  `;
+}, {
+  signals: ['app-state']
 });
-// Initialize
-startScanning();
 
-document.addEventListener('click', (event) => {
-  if (event.target.matches('#scan-again-btn')) {
-    startScanning();
+document.querySelector("#product-info").addEventListener("click", (event) => {
+  if (event.target.matches("#scan-btn")) {
+    reset();
   }
 });

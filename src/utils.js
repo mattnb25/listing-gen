@@ -1,31 +1,27 @@
 import Papa from 'papaparse';
 
-const getData = () => {
-  return new Promise((resolve, reject) => {
-    Papa.parse('./data.csv', {
-      download: true,
-      header: true,
-      complete: (results) => {
-        const processedData = results.data.map(item => {
-          return {
-            ...item,
-            price1: item.price1 ? Number(item.price1) : null // Convert price1 to a number
-          };
-        }).filter(item => item.part_no); // Filter out rows with empty part_no if any
-        resolve(processedData);
-      },
-      error: (err) => reject(err)
-    });
+const products = await new Promise((resolve) => {
+  Papa.parse('./data.csv', {
+    download: true,
+    header: true,
+    skipEmptyLines: true,
+    complete: (results) => {
+      const map = new Map();
+
+      for (const row of results.data) {
+        if (!row.part_no) continue;
+
+        const key = String(row.part_no).trim();
+        row.desc = row.desc?.trim() || "No description";
+        row.price1 = parseFloat(row.price1) || 0;
+
+        map.set(key, row);
+      }
+      resolve(map);
+    }
   });
-};
+});
 
-const allProducts = await getData();
-
-export async function getProductByUpc(upc) {
-  const product = allProducts.find(item =>
-    String(item.part_no).trim() === String(upc).trim()
-  );
-
-
-  return product || null;
+export function getProductByUpc(upc) {
+  return products.get(String(upc).trim()) || null;
 }
