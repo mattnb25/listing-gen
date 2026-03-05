@@ -68,7 +68,10 @@ component("#product-info", () => {
     'idle': `<p>Please allow camera access and point your camera at a barcode.</p>`,
     'fetching': `<p>Searching for ${barcode}...</p>`,
     'not-found': `
-      <p>Could not find ${barcode}...</p>
+      <article>
+        <h2>ITEM: ${barcode}</h2>
+        <p>Not found</p>
+      </article>
       <button id="scan-btn">Scan Another Item</button>
     `,
     'found': `
@@ -95,6 +98,6 @@ document.querySelector("#product-info").addEventListener("click", (e) => {
 });
 
 document.addEventListener('reef:signal-app-state', () => {
-  toggleCamera();
+  if (e.detail.changed.includes('status')) toggleCamera();
 });
 
