@@ -70,7 +70,7 @@ component("#product-info", () => {
     'not-found': `
       <article>
         <h2>ITEM: ${barcode}</h2>
-        <p>Not found</p>
+        <p style="font-size: 1.2rem;>Not found</p>
       </article>
       <button id="scan-btn">Scan Another Item</button>
     `,
